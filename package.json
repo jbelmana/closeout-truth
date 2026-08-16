@@ -1,0 +1,16 @@
+{
+  "name": "closeout-truth",
+  "version": "0.1.0",
+  "description": "Audit an AI coding agent's own completion claims against ground truth (git + GitHub).",
+  "license": "MIT",
+  "bin": { "closeout-truth": "bin/closeout-truth.js" },
+  "main": "lib/extract.js",
+  "files": ["bin", "lib", "README.md", "LICENSE"],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "audit": "node bin/closeout-truth.js"
+  },
+  "engines": { "node": ">=18" },
+  "keywords": ["claude-code", "ai-agent", "audit", "verification", "llm-evaluation"],
+  "dependencies": {}
+}

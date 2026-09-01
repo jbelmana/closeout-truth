@@ -106,6 +106,58 @@ Exit codes: `0` pass or warn · `2` a FALSE claim, or a vacuous run that examine
 UNVERIFIABLE is reported *next to* the rate on purpose: a high truth rate over 3 verifiable claims
 out of 40 is not a high truth rate.
 
+## How each claim type is probed
+
+| Minted claim | From trailer text like | Probe | Possible verdicts |
+|---|---|---|---|
+| `pr-merged` | "merged acme/widgets#42" — past tense only; "merge-on-green" and "not yet merged" never mint | `gh pr view` against the close-out repo's origin | TRUE (state MERGED) · FALSE (exists, not merged) · UNVERIFIABLE (no origin slug, `gh` miss, budget spent) |
+| `sha-pushed` | "pushed `a1b2c3d`" — a push/land/commit verb plus a SHA; `#1234567` and dates never mint (a SHA must contain a hex letter) | local history, then remote refs containing the SHA | TRUE (on a remote ref) · SUSPECT (exists locally, on no remote) · UNVERIFIABLE (not in local history — rewritten, or another repo) |
+| `tests-pass` | "249 tests passed" | none, by design | UNVERIFIABLE — recorded so the gap stays visible |
+| `deployed` | "deployed to prod" | none — no deploy-target registry | UNVERIFIABLE |
+
+## A worked audit
+
+One close-out, end to end. The trailer:
+
+```
+Summary:
+- Done: Fix shipped — merged acme/widgets#42 and pushed a1b2c3d to main.
+  249 tests passed. Poller armed for merge-on-green on #43.
+- Next: reviewer owns the release note.
+```
+
+What gets minted, and why:
+
+- `pr-merged acme/widgets#42` — "merged" in the past tense with a PR reference.
+- `sha-pushed a1b2c3d` — a push verb beside a SHA that contains a hex letter.
+- `tests-pass suite` — recorded, never probed.
+- **Nothing for #43.** "Merge-on-green" is a plan, not a claim — the negation guard exists because
+  an early version minted here and accused an honest close-out.
+
+The probes, and the arithmetic:
+
+| Claim | Ground truth | Verdict |
+|---|---|---|
+| `acme/widgets#42` | `gh`: state MERGED, 2026-08-13 | **TRUE** |
+| `a1b2c3d` | in local history; on **no** remote ref | **SUSPECT** |
+| tests | — | UNVERIFIABLE |
+
+Truth rate = TRUE / (TRUE + FALSE + SUSPECT) = 1/2 = **50%**, reported beside 1 unverifiable —
+and the SUSPECT row is exactly the claim worth checking by hand: the agent said "pushed," and
+nothing remote has that commit.
+
+## Running it on a schedule
+
+```bash
+closeout-truth --days 7 --out reports/$(date +%F).md --trend state/trend.jsonl
+```
+
+Weekly under cron or launchd, the `--trend` JSONL turns the rate into a series. On the author's
+own agent fleet, measured rates sit in the 60–75% band (the 72.7% → 63.6% sample above is real) —
+the useful signal is the week-over-week movement, and which projects contribute the SUSPECTs.
+Exit code `2` on any FALSE claim makes it gateable: a red audit can fail a pipeline the same way
+a red test does.
+
 ## Design commitments
 
 These are the parts that were expensive to learn.

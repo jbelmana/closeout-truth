@@ -110,7 +110,7 @@ out of 40 is not a high truth rate.
 
 | Minted claim | From trailer text like | Probe | Possible verdicts |
 |---|---|---|---|
-| `pr-merged` | "merged acme/widgets#42" — past tense only; "merge-on-green" and "not yet merged" never mint | `gh pr view` against the close-out repo's origin | TRUE (state MERGED) · FALSE (exists, not merged) · UNVERIFIABLE (no origin slug, `gh` miss, budget spent) |
+| `pr-merged` | "merged acme/widgets#42" — past tense only; "merge-on-green" and "not yet merged" never mint | `gh pr view` against an explicit owner/repo reference, falling back to the close-out repo’s origin | TRUE (state MERGED) · FALSE (exists, not merged) · UNVERIFIABLE (no origin slug, `gh` miss, budget spent) |
 | `sha-pushed` | "pushed `a1b2c3d`" — a push/land/commit verb plus a SHA; `#1234567` and dates never mint (a SHA must contain a hex letter) | local history, then remote refs containing the SHA | TRUE (on a remote ref) · SUSPECT (exists locally, on no remote) · UNVERIFIABLE (not in local history — rewritten, or another repo) |
 | `tests-pass` | "249 tests passed" | none, by design | UNVERIFIABLE — recorded so the gap stays visible |
 | `deployed` | "deployed to prod" | none — no deploy-target registry | UNVERIFIABLE |
@@ -152,9 +152,9 @@ nothing remote has that commit.
 closeout-truth --days 7 --out reports/$(date +%F).md --trend state/trend.jsonl
 ```
 
-Weekly under cron or launchd, the `--trend` JSONL turns the rate into a series. On the author's
-own agent fleet, measured rates sit in the 60–75% band (the 72.7% → 63.6% sample above is real) —
-the useful signal is the week-over-week movement, and which projects contribute the SUSPECTs.
+Weekly under cron or launchd, the `--trend` JSONL turns the rate into a series.
+Compare successive runs and inspect which projects contribute the SUSPECTs, while retaining
+the unverifiable count alongside each rate.
 Exit code `2` on any FALSE claim makes it gateable: a red audit can fail a pipeline the same way
 a red test does.
 
